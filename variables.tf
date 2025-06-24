@@ -33,3 +33,9 @@ variable "key_name" {
   type        = string
   default     = "my-key-pair"
 }
+
+variable "availability_zone" {
+  description = "The AWS availability zone to deploy resources"
+  type        = string
+  default     = "us-east-1a"
+}
