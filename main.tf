@@ -40,12 +40,10 @@ resource "aws_security_group" "allow_http" {
 }
 
 resource "aws_instance" "web" {
-  ami           = "ami-09e6f87a47903347c"
-  instance_type = var.instance_type
-  subnet_id     = aws_subnet.public.id
-  security_groups = [aws_security_group.allow_http.name]
-
-  tags = {
-    Name = "web-instance"
-  }
+  ami                    = var.ami_id
+  instance_type          = var.instance_type
+  subnet_id              = aws_subnet.public.id
+  vpc_security_group_ids = [aws_security_group.allow_http.id]
+  key_name               = var.key_name
+  # ...outros parâmetros...
 }
