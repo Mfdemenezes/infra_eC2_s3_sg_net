@@ -1,4 +1,4 @@
-name: Terraform Destroy
+name: 🗑️ Terraform Destroy
 
 on:
   workflow_dispatch:
@@ -24,13 +24,13 @@ on:
 
 jobs:
   destroy:
-    name: Terraform Destroy
+    name: 🗑️ Terraform Destroy
     runs-on: ubuntu-latest
     environment: 
       name: ${{ github.event.inputs.environment }}
     
     steps:
-      - name: Validate Confirmation
+      - name: ✅ Validate Confirmation
         run: |
           if [ "${{ github.event.inputs.confirmation }}" != "DESTROY" ]; then
             echo "❌ Destruction cancelled. You must type 'DESTROY' to confirm."
@@ -39,36 +39,36 @@ jobs:
           fi
           echo "✅ Destruction confirmed."
 
-      - name: Checkout code
+      - name: 📥 Checkout code
         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
+      - name: 🔐 Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: Set up Terraform
+      - name: 🛠️ Set up Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.8.5
 
-      - name: Terraform Init
+      - name: 🚀 Terraform Init
         run: terraform init
 
-      - name: Terraform Plan Destroy
+      - name: 📋 Terraform Plan Destroy
         run: |
           echo "Planning infrastructure destruction..."
           terraform plan -destroy -out=destroy-plan
           echo "📋 Destruction plan created. Review the plan above."
 
-      - name: Show Destruction Plan
+      - name: 🔍 Show Destruction Plan
         run: |
           echo "🔍 Resources to be destroyed:"
           terraform show destroy-plan
 
-      - name: Wait for Final Confirmation
+      - name: ⏳ Wait for Final Confirmation
         run: |
           echo "⚠️  WARNING: This will permanently destroy your infrastructure!"
           echo "Environment: ${{ github.event.inputs.environment }}"
@@ -76,7 +76,7 @@ jobs:
           echo "Proceeding in 10 seconds..."
           sleep 10
 
-      - name: Terraform Destroy
+      - name: 🔥 Terraform Destroy
         run: |
           if [ "${{ github.event.inputs.force_destroy }}" == "true" ]; then
             echo "🔥 Force destroying infrastructure..."
@@ -86,7 +86,7 @@ jobs:
             terraform apply destroy-plan
           fi
 
-      - name: Verify Destruction
+      - name: ✅ Verify Destruction
         run: |
           echo "🔍 Verifying destruction..."
           if terraform state list 2>/dev/null | grep -q .; then
@@ -96,7 +96,7 @@ jobs:
             echo "✅ All resources successfully destroyed"
           fi
 
-      - name: Cleanup State (Optional)
+      - name: 🧹 Cleanup State (Optional)
         if: github.event.inputs.force_destroy == 'true'
         run: |
           echo "🧹 Cleaning up Terraform state..."
