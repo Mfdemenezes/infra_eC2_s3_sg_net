@@ -1,0 +1,176 @@
+name: Terraform CI/CD Pipeline
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        default: 'plan'
+        type: choice
+        options:
+          - validate
+          - plan
+          - apply
+      environment:
+        description: 'Environment'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+
+jobs:
+  validate:
+    name: Terraform Validate
+    runs-on: ubuntu-latest
+    outputs:
+      fmt-outcome: ${{ steps.fmt.outcome }}
+      validate-outcome: ${{ steps.validate.outcome }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.5
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Format Check
+        id: fmt
+        run: terraform fmt -check
+        continue-on-error: true
+
+      - name: Terraform Validate
+        id: validate
+        run: terraform validate
+
+  plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+    needs: validate
+    if: always() && needs.validate.outputs.validate-outcome == 'success'
+    outputs:
+      plan-outcome: ${{ steps.plan.outcome }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.5
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Plan
+        id: plan
+        run: |
+          terraform plan -detailed-exitcode -out=tfplan
+          echo "plan-exitcode=$?" >> $GITHUB_OUTPUT
+
+      - name: Upload Terraform Plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan-${{ github.sha }}
+          path: tfplan
+          retention-days: 30
+
+      - name: Save Plan Output
+        run: |
+          terraform show -no-color tfplan > tfplan.txt
+
+      - name: Upload Plan Output
+        uses: actions/upload-artifact@v4
+        with:
+          name: plan-output-${{ github.sha }}
+          path: tfplan.txt
+          retention-days: 30
+        if: always()
+
+  apply:
+    name: Terraform Apply
+    runs-on: ubuntu-latest
+    needs: [validate, plan]
+    if: |
+      always() && 
+      needs.validate.outputs.validate-outcome == 'success' && 
+      needs.plan.outputs.plan-outcome == 'success' &&
+      (github.event_name == 'push' && github.ref == 'refs/heads/main' ||
+       github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply')
+    environment: 
+      name: ${{ github.event.inputs.environment || 'dev' }}
+      url: ${{ steps.output.outputs.url }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.5
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Download Terraform Plan
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan-${{ github.sha }}
+        continue-on-error: true
+
+      - name: Terraform Apply
+        run: |
+          if [ -f tfplan ]; then
+            echo "Applying existing plan..."
+            terraform apply tfplan
+          else
+            echo "No plan file found, creating new plan and applying..."
+            terraform apply -auto-approve
+          fi
+
+      - name: Get Terraform Outputs
+        id: output
+        run: |
+          echo "Terraform outputs:"
+          terraform output -json
+          
+          # Set outputs for environment URL if available
+          if terraform output -raw bucket_name >/dev/null 2>&1; then
+            bucket_name=$(terraform output -raw bucket_name)
+            echo "url=https://${bucket_name}.s3.amazonaws.com" >> $GITHUB_OUTPUT
+          fi
