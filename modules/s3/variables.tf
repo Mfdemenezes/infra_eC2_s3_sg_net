@@ -1,11 +1,33 @@
-variable "bucket_name" {
-  description = "Nome do bucket S3"
+variable "project_name" {
+  description = "Nome do projeto para tags dos recursos"
   type        = string
-  default = "value-do-bucket"
+}
+
+variable "bucket_name" {
+  description = "Nome específico do bucket"
+  type        = string
 }
 
 variable "environment" {
-  description = "Ambiente (ex: dev, prod)"
+  description = "Ambiente (dev, prod, staging)"
   type        = string
-  default     = "dev"
+  default     = "development"
+}
+
+variable "enable_versioning" {
+  description = "Habilitar versionamento no bucket S3"
+  type        = bool
+  default     = false
+}
+
+variable "enable_encryption" {
+  description = "Habilitar criptografia no bucket S3"
+  type        = bool
+  default     = true
+}
+
+variable "block_public_access" {
+  description = "Bloquear acesso público ao bucket"
+  type        = bool
+  default     = true
 }
