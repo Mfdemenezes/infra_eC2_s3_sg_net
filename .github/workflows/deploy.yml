@@ -147,6 +147,21 @@ jobs:
       - name: Terraform Init
         run: terraform init
 
+      - name: Check AWS Permissions
+        run: |
+          echo "🔐 Checking AWS permissions..."
+          
+          # Check basic AWS access
+          aws sts get-caller-identity
+          
+          # Check if we can list IAM roles (needed for SSM)
+          if aws iam list-roles --max-items 1 >/dev/null 2>&1; then
+            echo "✅ IAM permissions available"
+          else
+            echo "⚠️  Limited IAM permissions detected"
+            echo "💡 Consider setting 'enable_ssm = false' if you encounter IAM errors"
+          fi
+
       - name: Download Terraform Plan
         uses: actions/download-artifact@v4
         with:
@@ -155,13 +170,37 @@ jobs:
 
       - name: Terraform Apply
         run: |
+          set -e
           if [ -f tfplan ]; then
-            echo "Applying existing plan..."
+            echo "🚀 Applying existing plan..."
             terraform apply tfplan
           else
-            echo "No plan file found, creating new plan and applying..."
+            echo "📋 No plan file found, creating new plan and applying..."
             terraform apply -auto-approve
           fi
+        continue-on-error: false
+
+      - name: Handle Apply Errors
+        if: failure()
+        run: |
+          echo "❌ Terraform Apply failed!"
+          echo ""
+          echo "🔍 Common issues and solutions:"
+          echo ""
+          echo "1. IAM Permissions Error:"
+          echo "   - Check if your AWS user has necessary IAM permissions"
+          echo "   - Consider disabling SSM by setting 'enable_ssm = false' in terraform.tfvars"
+          echo ""
+          echo "2. Resource Already Exists:"
+          echo "   - Run 'terraform import' for existing resources"
+          echo "   - Or change resource names to avoid conflicts"
+          echo ""
+          echo "3. Backend State Lock:"
+          echo "   - Check if there's an ongoing deployment"
+          echo "   - Force unlock if necessary (use with caution)"
+          echo ""
+          echo "💡 Check the AWS Console and Terraform state for more details"
+          exit 1
 
       - name: Get Terraform Outputs
         id: output

@@ -14,7 +14,7 @@ resource "aws_instance" "instance" {
   instance_type          = var.instance_type
   subnet_id              = var.subnet_id
   vpc_security_group_ids = var.security_group_ids
-  iam_instance_profile   = aws_iam_instance_profile.ec2_ssm.name
+  iam_instance_profile   = var.enable_ssm ? aws_iam_instance_profile.ec2_ssm[0].name : null
   #Perde o ebs antigo antes de criar o novo?
   lifecycle {
     create_before_destroy = true
@@ -70,6 +70,7 @@ resource "aws_iam_role_policy_attachment" "ssm_core" {
 
 # Create the EC2 instance profile
 resource "aws_iam_instance_profile" "ec2_ssm" {
-  name = "${var.project_name}-ec2-ssm-profile-${random_id.iam_suffix.hex}"
-  role = var.enable_ssm ? aws_iam_role.ec2_ssm[0].name : null
+  count = var.enable_ssm ? 1 : 0
+  name  = "${var.project_name}-ec2-ssm-profile-${random_id.iam_suffix.hex}"
+  role  = aws_iam_role.ec2_ssm[0].name
 }
