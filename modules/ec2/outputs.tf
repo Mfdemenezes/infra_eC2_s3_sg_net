@@ -25,5 +25,5 @@ output "iam_role_arn" {
 
 output "instance_profile_name" {
   description = "Nome do instance profile"
-  value       = aws_iam_instance_profile.ec2_ssm.name
+  value       = var.enable_ssm ? aws_iam_instance_profile.ec2_ssm[0].name : null
 }
