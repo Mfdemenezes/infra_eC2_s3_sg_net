@@ -20,7 +20,11 @@ ebs_volume_type = "gp3"
 
 
 # Configurações S3
-s3_bucket_name = "mfdemenezes-terraform-bucket"
+s3_bucket_name              = "mfdemenezes-terraform-bucket"
+s3_block_public_access      = true   # Manter bloqueado para segurança
+s3_enable_bucket_policy     = true   # Habilitar política SSL only
+s3_enable_versioning        = false  # Versionamento desabilitado
+s3_enable_encryption        = true   # Criptografia habilitada
 
 
 

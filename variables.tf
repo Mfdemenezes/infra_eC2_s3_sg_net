@@ -159,3 +159,9 @@ variable "s3_block_public_access" {
   type        = bool
   default     = true
 }
+
+variable "s3_enable_bucket_policy" {
+  description = "Habilitar política personalizada do bucket S3 (SSL only)"
+  type        = bool
+  default     = true
+}

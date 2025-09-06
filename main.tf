@@ -48,12 +48,13 @@ module "security_group" {
 module "s3" {
   source = "./modules/s3"
 
-  project_name        = var.ec2_name
-  environment         = var.environment
-  enable_versioning   = var.s3_enable_versioning
-  enable_encryption   = var.s3_enable_encryption
-  block_public_access = var.s3_block_public_access
-  bucket_name         = var.s3_bucket_name
+  project_name          = var.ec2_name
+  environment           = var.environment
+  enable_versioning     = var.s3_enable_versioning
+  enable_encryption     = var.s3_enable_encryption
+  block_public_access   = var.s3_block_public_access
+  enable_bucket_policy  = var.s3_enable_bucket_policy
+  bucket_name           = var.s3_bucket_name
 }
 
 # Módulo EC2

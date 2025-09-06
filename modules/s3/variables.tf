@@ -31,3 +31,9 @@ variable "block_public_access" {
   type        = bool
   default     = true
 }
+
+variable "enable_bucket_policy" {
+  description = "Habilitar política personalizada do bucket (SSL only)"
+  type        = bool
+  default     = true
+}
